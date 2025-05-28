@@ -1,0 +1,149 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+
+model Usuario {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  nome            String
+  email           String   @unique
+  senha           String
+  salarioMensal   Float    @default(0)
+  saldoAtual      Float    @default(0)
+  dataCriacao     DateTime @default(now())
+  dataAtualizacao DateTime @updatedAt
+
+  // Relacionamentos
+  transacoes      Transacao[]
+  resumoMensal    ResumoMensal[]
+  metas           Meta[]
+  orcamentoMensal OrcamentoMensal[]
+
+  @@map("usuarios")
+}
+
+model Categoria {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  nome        String   @unique
+  cor         String   @default("#007bff")
+  icone       String   @default("default")
+  ativa       Boolean  @default(true)
+  dataCriacao DateTime @default(now())
+
+  // Relacionamentos
+  transacoes      Transacao[]
+  orcamentoMensal OrcamentoMensal[]
+
+  @@map("categorias")
+}
+
+model Transacao {
+  id             String        @id @default(auto()) @map("_id") @db.ObjectId
+  usuarioId      String        @db.ObjectId
+  categoriaId    String?       @db.ObjectId
+  tipo           TipoTransacao
+  descricao      String
+  valor          Float
+  dataTransacao  DateTime
+  dataCriacao    DateTime      @default(now())
+
+  // Relacionamentos
+  usuario   Usuario    @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  categoria Categoria? @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+
+  @@map("transacoes")
+}
+
+model ResumoMensal {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  usuarioId      String   @db.ObjectId
+  ano            Int
+  mes            Int
+  totalReceitas  Float    @default(0)
+  totalDespesas  Float    @default(0)
+  saldoMes       Float    @default(0)
+  economia       Float    @default(0)
+  dataAtualizacao DateTime @updatedAt
+
+  // Relacionamentos
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, ano, mes])
+  @@map("resumo_mensal")
+}
+
+model Meta {
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  usuarioId       String        @db.ObjectId
+  titulo          String
+  descricao       String?
+  valorObjetivo   Float
+  valorAtual      Float         @default(0)
+  dataObjetivo    DateTime?
+  status          StatusMeta    @default(ATIVA)
+  cor             String        @default("#28a745")
+  dataCriacao     DateTime      @default(now())
+  dataAtualizacao DateTime      @updatedAt
+
+  // Relacionamentos
+  usuario        Usuario         @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  depositosMetas DepositoMeta[]
+
+  @@map("metas")
+}
+
+model DepositoMeta {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  metaId        String   @db.ObjectId
+  valor         Float
+  descricao     String?
+  dataDeposito  DateTime
+  dataCriacao   DateTime @default(now())
+
+  // Relacionamentos
+  meta Meta @relation(fields: [metaId], references: [id], onDelete: Cascade)
+
+  @@map("depositos_metas")
+}
+
+model OrcamentoMensal {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  usuarioId       String   @db.ObjectId
+  categoriaId     String   @db.ObjectId
+  ano             Int
+  mes             Int
+  valorOrcado     Float
+  valorGasto      Float    @default(0)
+  dataCriacao     DateTime @default(now())
+  dataAtualizacao DateTime @updatedAt
+
+  // Relacionamentos
+  usuario   Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  categoria Categoria @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, categoriaId, ano, mes])
+  @@map("orcamento_mensal")
+}
+
+enum TipoTransacao {
+  RECEITA
+  DESPESA
+}
+
+enum StatusMeta {
+  ATIVA
+  CONCLUIDA
+  CANCELADA
+}
