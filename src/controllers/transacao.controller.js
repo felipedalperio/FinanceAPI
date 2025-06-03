@@ -1,10 +1,11 @@
 import { PrismaClient } from '../../generated/prisma/index.js'
 
+
 const prisma = new PrismaClient();
 
 export const criarTransacao = async (req, res) => {
   const { categoriaId, tipo, descricao, valor, dataTransacao } = req.body;
-  
+
   try {
     const transacao = await prisma.transacao.create({
       data: {
@@ -17,7 +18,7 @@ export const criarTransacao = async (req, res) => {
       }
     });
 
-     console.log(req.usuarioId)
+    console.log(req.usuarioId)
 
     res.status(201).json(transacao);
   } catch (err) {
@@ -49,14 +50,17 @@ export const listarTransacoes = async (req, res) => {
           lte: dataFim
         }
       },
+      include: {
+        categoria: true  // ⬅️ Aqui inclui os dados da categoria!
+      },
       orderBy: { dataCriacao: 'desc' }
     });
 
     const transacoesFormatadas = transacoes.map(transacao => ({
       ...transacao,
       dataTransacao: new Date(transacao.dataTransacao).toLocaleDateString('pt-BR'),
-      categoria: 'Teste',
-      icone: 'https://ui-avatars.com/api/?name=Estudo&background=2ECC71&color=fff&rounded=true'
+      valorFormatado: formatarValorCompleto(transacao.valor),
+      categoria: transacao.categoria ? transacao.categoria.nome : 'Sem categoria',
     }));
 
     res.json(transacoesFormatadas);
@@ -65,6 +69,17 @@ export const listarTransacoes = async (req, res) => {
     res.status(500).json({ error: 'Erro ao listar transações' });
   }
 };
+
+
+function formatarValorCompleto(valor, moeda = 'BRL', locale = 'pt-BR') {
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: moeda,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(valor);
+}
+
 
 
 
@@ -107,20 +122,20 @@ export const listarCategoria = async (req, res) => {
 
 export const criarCategoria = async (req, res) => {
   try {
-    const {nome, icone, ativa} = req.body;
-    
+    const { nome, icone, ativa } = req.body;
+
     const categorias = await prisma.categoria.create({
-        data:{
-          nome,
-          icone,
-          ativa
-        }
+      data: {
+        nome,
+        icone,
+        ativa
+      }
     })
-    
+
     res.status(201).json(categorias);
 
   } catch (err) {
-   res.status(500).send(err)
+    res.status(500).send(err)
   }
 }
 
