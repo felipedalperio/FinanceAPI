@@ -1,9 +1,5 @@
 import express from 'express';
 import { PrismaClient } from './generated/prisma/index.js'
-import bcrypt from 'bcrypt';
-const saltRounds = 10
-
-import dotenv from 'dotenv';
 import authRoutes from './src/routes/auth.routes.js';
 import transacaoRoutes from './src//routes/transacao.routes.js';
 import metaRoutes from './src//routes/meta.routes.js';
