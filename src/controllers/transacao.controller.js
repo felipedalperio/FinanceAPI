@@ -4,26 +4,31 @@ import { PrismaClient } from '../../generated/prisma/index.js'
 const prisma = new PrismaClient();
 
 export const criarTransacao = async (req, res) => {
+
   const { categoriaId, tipo, descricao, valor, dataTransacao } = req.body;
+
+  const data = {
+    usuarioId: req.usuarioId,
+    tipo,
+    descricao,
+    valor,
+    dataTransacao: new Date(dataTransacao),
+  };
+
+  if (categoriaId) {
+    data.categoriaId = categoriaId;
+  }
 
   try {
     const transacao = await prisma.transacao.create({
-      data: {
-        usuarioId: req.usuarioId,
-        categoriaId,
-        tipo,
-        descricao,
-        valor,
-        dataTransacao: new Date(dataTransacao)
-      }
+      data
     });
-
-    console.log(req.usuarioId)
 
     res.status(201).json(transacao);
   } catch (err) {
-    res.status(400).json({ error: err });
+    res.status(400).json({ error: err.message });
   }
+
 };
 
 export const listarTransacoes = async (req, res) => {
@@ -32,8 +37,8 @@ export const listarTransacoes = async (req, res) => {
     const anoAtual = new Date().getFullYear();
     const dataAtual = new Date();
 
-    let dataInicio = new Date(); // ⬅️ agora é let
-    let dataFim = dataAtual;     // ⬅️ agora é let
+    let dataInicio = new Date();
+    let dataFim = dataAtual;
 
     if (!ultimosDoze) {
       dataInicio = new Date(`${anoAtual}-01-01`);
@@ -51,7 +56,7 @@ export const listarTransacoes = async (req, res) => {
         }
       },
       include: {
-        categoria: true  // ⬅️ Aqui inclui os dados da categoria!
+        categoria: true
       },
       orderBy: { dataCriacao: 'desc' }
     });
@@ -133,6 +138,21 @@ export const criarCategoria = async (req, res) => {
     })
 
     res.status(201).json(categorias);
+
+  } catch (err) {
+    res.status(500).send(err)
+  }
+}
+
+export const deleteTransicao = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const transacao = await prisma.transacao.delete({
+      where: { usuarioId: req.usuarioId, id: id }
+    });
+
+    res.status(200).json(transacao);
 
   } catch (err) {
     res.status(500).send(err)

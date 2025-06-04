@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { criarTransacao, listarDespesas, listarReceitas, listarTransacoes, listarCategoria, criarCategoria } from '../controllers/transacao.controller.js';
+import { criarTransacao, listarDespesas, listarReceitas, listarTransacoes, listarCategoria, criarCategoria, deleteTransicao } from '../controllers/transacao.controller.js';
 import { authMiddleware } from '../middlewares/auth.middleware.js';
 
 const router = Router();
@@ -12,5 +12,6 @@ router.get('/despesas', listarDespesas);
 router.get('/receitas', listarReceitas);
 router.get('/categorias', listarCategoria);
 router.post('/categoria', criarCategoria);
+router.delete('/delete/:id', deleteTransicao);
 
 export default router;
