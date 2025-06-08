@@ -127,12 +127,11 @@ export const listarCategoria = async (req, res) => {
 
 export const criarCategoria = async (req, res) => {
   try {
-    const { nome, icone, ativa } = req.body;
+    const { nome, ativa } = req.body;
 
     const categorias = await prisma.categoria.create({
       data: {
         nome,
-        icone,
         ativa
       }
     })
