@@ -12,7 +12,7 @@ export const criarTransacao = async (req, res) => {
     tipo,
     descricao,
     valor,
-    dataTransacao: new Date(dataTransacao),
+    dataTransacao: new Date(dataTransacao + 'T12:00:00'),
   };
 
   if (categoriaId) {
@@ -31,20 +31,56 @@ export const criarTransacao = async (req, res) => {
 
 };
 
+export const updateTransacao = async (req, res) => {
+  const { id } = req.params;
+  const { categoriaId, tipo, descricao, valor, dataTransacao } = req.body;
+
+  const data = {
+    usuarioId: req.usuarioId,
+    tipo,
+    descricao,
+    valor,
+    dataTransacao: new Date(dataTransacao + 'T12:00:00'),
+  };
+
+  if (categoriaId) {
+    data.categoriaId = categoriaId;
+  }
+
+  try {
+    const transacao = await prisma.transacao.update({
+      where: {
+        usuarioId: req.usuarioId, id: id,
+      },
+      data,
+    });
+
+    res.status(200).json(transacao);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+
 export const listarTransacoes = async (req, res) => {
   try {
-    const ultimosDoze = req.params.ultimosDoze === 'true';
+    const { inicio, fim, ultimosDoze } = req.query;
+
     const anoAtual = new Date().getFullYear();
     const dataAtual = new Date();
 
     let dataInicio = new Date();
     let dataFim = dataAtual;
 
-    if (!ultimosDoze) {
-      dataInicio = new Date(`${anoAtual}-01-01`);
-      dataFim = new Date(`${anoAtual}-12-31`);
-    } else {
+    if (inicio && fim) {
+      // Se as datas foram enviadas via query
+      dataInicio = new Date(inicio + 'T00:00:00');
+      dataFim = new Date(fim + 'T23:59:59');
+    } else if (ultimosDoze === 'true') {
       dataInicio.setMonth(dataInicio.getMonth() - 12);
+    } else {
+      dataInicio = new Date(`${anoAtual}-01-01T00:00:00`);
+      dataFim = new Date(`${anoAtual}-12-31T23:59:59`);
     }
 
     const transacoes = await prisma.transacao.findMany({
@@ -58,7 +94,7 @@ export const listarTransacoes = async (req, res) => {
       include: {
         categoria: true
       },
-      orderBy: { dataCriacao: 'desc' }
+      orderBy: { dataTransacao: 'desc' }
     });
 
     const transacoesFormatadas = transacoes.map(transacao => ({
@@ -76,6 +112,7 @@ export const listarTransacoes = async (req, res) => {
 };
 
 
+
 function formatarValorCompleto(valor, moeda = 'BRL', locale = 'pt-BR') {
   return new Intl.NumberFormat(locale, {
     style: 'currency',
@@ -91,27 +128,64 @@ function formatarValorCompleto(valor, moeda = 'BRL', locale = 'pt-BR') {
 
 export const listarReceitas = async (req, res) => {
   try {
-    const transacoes = await prisma.transacao.findMany({
-      where: { usuarioId: req.usuarioId, tipo: "RECEITA" }
-    });
-    res.json(transacoes);
+    const { inicio, fim } = req.query;
 
+    let dataInicio = new Date(`${new Date().getFullYear()}-01-01T00:00:00`);
+    let dataFim = new Date(`${new Date().getFullYear()}-12-31T23:59:59`);
+
+    if (inicio && fim) {
+      dataInicio = new Date(`${inicio}T00:00:00`);
+      dataFim = new Date(`${fim}T23:59:59`);
+    }
+
+    const transacoes = await prisma.transacao.findMany({
+      where: {
+        usuarioId: req.usuarioId,
+        tipo: "RECEITA",
+        dataTransacao: {
+          gte: dataInicio,
+          lte: dataFim
+        }
+      }
+    });
+
+    res.json(transacoes);
   } catch (err) {
-    res.status(500).json({ error: 'Erro ao listar' });
+    console.error(err);
+    res.status(500).json({ error: 'Erro ao listar receitas' });
   }
 };
 
 export const listarDespesas = async (req, res) => {
   try {
+    const { inicio, fim } = req.query;
+
+    let dataInicio = new Date(`${new Date().getFullYear()}-01-01T00:00:00`);
+    let dataFim = new Date(`${new Date().getFullYear()}-12-31T23:59:59`);
+
+    if (inicio && fim) {
+      dataInicio = new Date(`${inicio}T00:00:00`);
+      dataFim = new Date(`${fim}T23:59:59`);
+    }
+
     const transacoes = await prisma.transacao.findMany({
-      where: { usuarioId: req.usuarioId, tipo: "DESPESA" }
+      where: {
+        usuarioId: req.usuarioId,
+        tipo: "DESPESA",
+        dataTransacao: {
+          gte: dataInicio,
+          lte: dataFim
+        }
+      }
     });
 
     res.json(transacoes);
   } catch (err) {
-    res.status(500).json({ error: 'Erro ao listar ' });
+    console.error(err);
+    res.status(500).json({ error: 'Erro ao listar despesas' });
   }
 };
+
 
 export const listarCategoria = async (req, res) => {
   try {
