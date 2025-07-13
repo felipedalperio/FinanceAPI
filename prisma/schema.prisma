@@ -49,6 +49,12 @@ model Categoria {
   @@map("categorias")
 }
 
+enum FormaPagamento {
+  CRÉDITO
+  DÉBITO
+}
+
+
 model Transacao {
   id             String        @id @default(auto()) @map("_id") @db.ObjectId
   usuarioId      String        @db.ObjectId
@@ -58,6 +64,8 @@ model Transacao {
   valor          Float
   dataTransacao  DateTime
   dataCriacao    DateTime      @default(now())
+  formaPagamento FormaPagamento?    
+  parcelas       Int?         
 
   // Relacionamentos
   usuario   Usuario    @relation(fields: [usuarioId], references: [id], onDelete: Cascade)

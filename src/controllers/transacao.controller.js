@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 export const criarTransacao = async (req, res) => {
 
-  const { categoriaId, tipo, descricao, valor, dataTransacao } = req.body;
+  const { categoriaId, tipo, descricao, valor, dataTransacao, formaPagamento, parcelas } = req.body;
 
   const data = {
     usuarioId: req.usuarioId,
@@ -13,6 +13,8 @@ export const criarTransacao = async (req, res) => {
     descricao,
     valor,
     dataTransacao: new Date(dataTransacao + 'T12:00:00'),
+    formaPagamento,
+    parcelas
   };
 
   if (categoriaId) {
@@ -33,7 +35,7 @@ export const criarTransacao = async (req, res) => {
 
 export const updateTransacao = async (req, res) => {
   const { id } = req.params;
-  const { categoriaId, tipo, descricao, valor, dataTransacao } = req.body;
+  const { categoriaId, tipo, descricao, valor, dataTransacao, formaPagamento, parcelas } = req.body;
 
   const data = {
     usuarioId: req.usuarioId,
@@ -41,6 +43,8 @@ export const updateTransacao = async (req, res) => {
     descricao,
     valor,
     dataTransacao: new Date(dataTransacao + 'T12:00:00'),
+    formaPagamento,
+    parcelas
   };
 
   if (categoriaId) {
@@ -73,13 +77,15 @@ export const listarTransacoes = async (req, res) => {
     let dataFim = dataAtual;
 
     if (inicio && fim) {
-      // Se as datas foram enviadas via query
       dataInicio = new Date(inicio + 'T00:00:00');
       dataFim = new Date(fim + 'T23:59:59');
     } else if (ultimosDoze === 'true') {
       dataInicio.setMonth(dataInicio.getMonth() - 12);
     } else {
+      // ANO ATUAL – AJUSTE: incluir transações do final do ano passado com parcelas
+      // Começa 12 meses antes de janeiro do ano atual
       dataInicio = new Date(`${anoAtual}-01-01T00:00:00`);
+      dataInicio.setMonth(dataInicio.getMonth() - 11); // retrocede 11 meses para incluir parcelas anteriores
       dataFim = new Date(`${anoAtual}-12-31T23:59:59`);
     }
 
@@ -110,6 +116,7 @@ export const listarTransacoes = async (req, res) => {
     res.status(500).json({ error: 'Erro ao listar transações' });
   }
 };
+
 
 
 
