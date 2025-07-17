@@ -66,6 +66,7 @@ export const updateTransacao = async (req, res) => {
 };
 
 
+/*
 export const listarTransacoes = async (req, res) => {
   try {
     const { inicio, fim, ultimosDoze } = req.query;
@@ -115,7 +116,58 @@ export const listarTransacoes = async (req, res) => {
     console.error(err);
     res.status(500).json({ error: 'Erro ao listar transações' });
   }
+}; */
+
+
+export const listarTransacoes = async (req, res) => {
+  try {
+    const { inicio, fim, ultimosDoze } = req.query;
+
+    const anoAtual = new Date().getFullYear();
+    const dataAtual = new Date();
+
+    let dataInicio = new Date();
+    let dataFim = dataAtual;
+
+    if (inicio && fim) {
+      // Se as datas foram enviadas via query
+      dataInicio = new Date(inicio + 'T00:00:00');
+      dataFim = new Date(fim + 'T23:59:59');
+    } else if (ultimosDoze === 'true') {
+      dataInicio.setMonth(dataInicio.getMonth() - 12);
+    } else {
+      dataInicio = new Date(`${anoAtual}-01-01T00:00:00`);
+      dataFim = new Date(`${anoAtual}-12-31T23:59:59`);
+    }
+
+    const transacoes = await prisma.transacao.findMany({
+      where: {
+        usuarioId: req.usuarioId,
+        dataTransacao: {
+          gte: dataInicio,
+          lte: dataFim
+        }
+      },
+      include: {
+        categoria: true
+      },
+      orderBy: { dataTransacao: 'desc' }
+    });
+
+    const transacoesFormatadas = transacoes.map(transacao => ({
+      ...transacao,
+      dataTransacao: new Date(transacao.dataTransacao).toLocaleDateString('pt-BR'),
+      valorFormatado: formatarValorCompleto(transacao.valor),
+      categoria: transacao.categoria ? transacao.categoria.nome : 'Sem categoria',
+    }));
+
+    res.json(transacoesFormatadas);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erro ao listar transações' });
+  }
 };
+
 
 
 
