@@ -158,7 +158,7 @@ export const listarTransacoes = async (req, res) => {
       ...transacao,
       dataTransacao: new Date(transacao.dataTransacao).toLocaleDateString('pt-BR'),
       valorFormatado: formatarValorCompleto(transacao.valor),
-      categoria: transacao.categoria ? transacao.categoria.nome : 'Sem categoria',
+      categoria: transacao.tipo === 'RECEITA' ? 'Entrada' : (transacao.categoria ? transacao.categoria.nome : 'Sem categoria'),
     }));
 
     res.json(transacoesFormatadas);
@@ -249,7 +249,10 @@ export const listarDespesas = async (req, res) => {
 export const listarCategoria = async (req, res) => {
   try {
     const categorias = await prisma.categoria.findMany({
-      where: { ativa: true }
+      where: { ativa: true },
+      orderBy: {
+        dataCriacao: 'asc'
+      }
     });
     res.json(categorias);
   } catch (err) {
